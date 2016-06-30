@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>The drawing game</title>
+
+    <style>
+    #the-canvas {
+      border: solid 2px black;
+    }
+    .topSection{
+      height: 30px;
+      width: 500px
+    }
+    td{
+      border: 2px solid black;
+      width: 50px;
+      text-align: center;
+      cursor: pointer;
+    }
+    #red{
+      background-color: red;
+    }
+    #blue{
+      background-color: blue;
+    }
+    #green{
+      background-color: green;
+    }
+    #black{
+      background-color: black;
+      color: white;
+    }
+
+    </style>
+  </head>
+  <body>
+    <table class="topSection">
+      <tr>
+        <td id="red">Red</td>
+        <td id="blue">Blue</td>
+        <td id="green">Green</td>
+        <td id="black">Black</td>
+        <td id="white">Erase</td>
+        <td id="2pixel">2px</td>
+        <td id="5pixel">5px</td>
+        <td id="10pixel">10px</td>
+        <td id="15pixel">15px</td>
+        <td id="reset">Reset</td>
+      </tr>
+    </table>
+    <canvas id="the-canvas" width="500" height="500"></canvas>
+    <script>
+    var drawColor = "";
+    var drawWidth = 3;
+      var canvas = document.getElementById('the-canvas');
+      var ctx = canvas.getContext('2d');
+
+
+
+      function drawLine(startX, startY, stopX, stopY, theColor, theWidth) {
+        ctx.strokeStyle = theColor;
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = theWidth;
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(stopX, stopY);
+        ctx.closePath();
+        ctx.stroke();
+      }
+//  Dot function
+      // function drawDot(mouseX, mouseY) {
+      //   ctx.fillStyle = 'red';
+      //
+      //   ctx.beginPath();
+      //   ctx.ellipse(mouseX, mouseY, 10, 10, 0, Math.PI * 2, false);
+      //   ctx.closePath();
+      //   ctx.fill();
+      // }
+
+    </script>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+    <script>
+      var socket = io();
+      //Jquery code goes here.
+      var startX;
+      var startY;
+      var mouseState = false;
+      $('#the-canvas').mousedown(function(event){
+        mouseState = true;
+        startX = event.clientX;
+        startY = event.clientY;
+      });
+
+
+
+      $("#the-canvas").mousemove(function(event){
+        if (mouseState === true){
+          var moveX = event.clientX;
+          var moveY = event.clientY;
+          var stopX = moveX;
+          var stopY = moveY;
+          drawLine(startX, startY, stopX, stopY, drawColor, drawWidth);
+          socket.emit('first-draw', {
+            startCoordX: startX,
+            startCoordY: startY,
+            stopCoordX: stopX,
+            stopCoordY: stopY,
+            lineColor: drawColor,
+            lineWidth: drawWidth
+          });
+          startX = stopX;
+          startY = stopY;
+        }
+      });
+
+      $('#the-canvas').mouseup(function(){
+        mouseState = false;
+      });
+
+      socket.on('get-canvas', function(){
+        var imgUrl = canvas.toDataURL();
+        socket.emit('send-canvas', imgUrl);
+      });
+      socket.on('receive-canvas', function(imgUrl){
+        console.log(imgUrl.length);
+        var image = new Image();
+        image.onload = function(){
+          canvas.width = image.width;
+          canvas.height = image.height;
+          canvas.getContext("2d").drawImage(image, 0, 0);
+        };
+        image.src = imgUrl;
+        ctx.drawImage(image, 500, 500)
+        console.log(image);
+      });
+
+      socket.on("first-draw", function(drawObject){
+        var startX2 = drawObject.startCoordX;
+        var startY2 = drawObject.startCoordY;
+        var stopX2 = drawObject.stopCoordX;
+        var stopY2 = drawObject.stopCoordY;
+        var theColor = drawObject.lineColor;
+        var theWidth = drawObject.lineWidth;
+        drawLine(startX2, startY2, stopX2, stopY2, theColor, theWidth);
+      });
+
+      $('#red').click(function(){
+        drawColor = "red";
+      });
+      $('#blue').click(function(){
+        drawColor = "blue";
+      });
+      $('#green').click(function(){
+        drawColor = "green";
+      });
+      $('#black').click(function(){
+        drawColor = "black";
+      });
+      $('#white').click(function(){
+        drawColor = "white";
+      });
+      $('#2pixel').click(function(){
+        drawWidth = 2;
+      });
+      $('#5pixel').click(function(){
+        drawWidth = 5;
+      });
+      $('#10pixel').click(function(){
+        drawWidth = 10;
+      });
+      $('#15pixel').click(function(){
+        drawWidth = 15;
+      });
+      $("#reset").click(function(){
+        ctx.clearRect(0, 0, 500, 500);
+      });
+
+//  Make dots
+      // $("#the-canvas").mousedown(function startDraw(event){
+      //   var mouseX = event.clientX;
+      //   var mouseY = event.clientY;
+      //   drawDot(mouseX, mouseY);
+      //   socket.emit('first-draw', {
+      //     coordX: mouseX,
+      //     coordY: mouseY
+      //   });
+      // });
+      // socket.on("first-draw", function(drawObject){
+      //   var mouseX2 = drawObject.coordX;
+      //   var mouseY2 = drawObject.coordY;
+      //   drawDot(mouseX2, mouseY2);
+      // });
+
+// Make lines
+
+    </script>
+  </body>
+</html>
